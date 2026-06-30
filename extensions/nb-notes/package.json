@@ -1,0 +1,69 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "nb-notes",
+  "title": "nb",
+  "description": "Browse, search, and manage notes, bookmarks, and todos with nb",
+  "categories": ["Productivity"],
+  "license": "MIT",
+  "author": "Keyruu",
+  "icon": "extension_icon.svg",
+  "commands": [
+    {
+      "name": "list-notes",
+      "title": "List Notes",
+      "description": "Browse and manage notes in your nb notebooks",
+      "mode": "view"
+    },
+    {
+      "name": "search-notes",
+      "title": "Search Notes",
+      "description": "Full-text search across your nb notebooks",
+      "mode": "view"
+    },
+    {
+      "name": "add-note",
+      "title": "Add Note",
+      "description": "Create a new note in nb",
+      "mode": "view"
+    },
+    {
+      "name": "add-todo",
+      "title": "Add Todo",
+      "description": "Create a new todo in nb",
+      "mode": "view"
+    },
+    {
+      "name": "list-todos",
+      "title": "List Todos",
+      "description": "Browse and manage todos with status filtering",
+      "mode": "view"
+    },
+    {
+      "name": "add-bookmark",
+      "title": "Add Bookmark",
+      "description": "Bookmark a URL in nb",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "terminalAppId",
+      "type": "textfield",
+      "title": "Terminal App ID",
+      "description": "Application ID for the terminal to use when editing notes (e.g. com.raggesilver.BlackBox, org.gnome.Terminal)",
+      "default": "",
+      "required": false
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "lint": "vici lint"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.16.11"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
