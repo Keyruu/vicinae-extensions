@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { Form, ActionPanel, Action, showToast, Toast, useNavigation } from "@vicinae/api";
+import { Form, ActionPanel, Action, showToast, Toast, closeMainWindow } from "@vicinae/api";
 import { exec, listNotebooks } from "./nb";
 
 export default function AddBookmark() {
-  const { pop } = useNavigation();
   const [notebooks, setNotebooks] = useState<string[]>([]);
 
   useEffect(() => {
@@ -24,7 +23,7 @@ export default function AddBookmark() {
 
       await exec(args);
       await showToast({ style: Toast.Style.Success, title: "Bookmark added" });
-      pop();
+      await closeMainWindow();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       await showToast({ style: Toast.Style.Failure, title: "Failed to add bookmark", message: msg });

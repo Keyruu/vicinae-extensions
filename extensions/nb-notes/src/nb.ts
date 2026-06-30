@@ -2,13 +2,16 @@ import { execFile } from "child_process";
 
 export function exec(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile("nb", args, { env: { ...process.env, NB_COLOR_ENABLED: "0" } }, (err, stdout, stderr) => {
+    const child = execFile("nb", args, { env: { ...process.env, NB_COLOR_ENABLED: "0" } }, (err, stdout, stderr) => {
       if (err) {
         reject(new Error(stderr.trim() || err.message));
       } else {
         resolve(stdout.trim());
       }
     });
+    // nb falls back to `cat` as its pager, which blocks reading stdin when stdout
+    // isn't a TTY. Closing stdin gives it EOF so the child exits and the callback fires.
+    child.stdin?.end();
   });
 }
 
