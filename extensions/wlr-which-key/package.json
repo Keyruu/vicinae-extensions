@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "wlr-which-key",
+  "title": "wlr-which-key",
+  "description": "Navigate your wlr-which-key keymap menu inside Vicinae",
+  "categories": ["System", "Productivity"],
+  "license": "MIT",
+  "author": "lucas",
+  "icon": "extension_icon.svg",
+  "commands": [
+    {
+      "name": "which-key",
+      "title": "Which Key",
+      "description": "Open the wlr-which-key menu and drill into submenus",
+      "mode": "view",
+      "arguments": [
+        {
+          "name": "keys",
+          "placeholder": "p s",
+          "type": "text",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "configPath",
+      "type": "textfield",
+      "title": "Config Path",
+      "description": "Path to wlr-which-key config.yaml. Defaults to $XDG_CONFIG_HOME/wlr-which-key/config.yaml",
+      "default": "",
+      "required": false
+    },
+    {
+      "name": "defaultKeys",
+      "type": "textfield",
+      "title": "Default Keys",
+      "description": "Key path to navigate to on launch when no keys argument is given (e.g. p s)",
+      "default": "",
+      "required": false
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "lint": "vici lint"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.16.11",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3"
+  }
+}
