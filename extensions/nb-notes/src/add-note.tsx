@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Form, ActionPanel, Action, showToast, Toast, closeMainWindow } from "@vicinae/api";
+import { Form, ActionPanel, Action, showToast, Toast, showHUD, PopToRootType } from "@vicinae/api";
 import { exec, listNotebooks } from "./nb";
+import { showError } from "./errors";
 
 export default function AddNote() {
   const [notebooks, setNotebooks] = useState<string[]>([]);
@@ -26,11 +27,9 @@ export default function AddNote() {
       if (content) args.push("--content", content);
 
       await exec(args);
-      await showToast({ style: Toast.Style.Success, title: "Note added" });
-      await closeMainWindow();
+      await showHUD("Note added", { popToRootType: PopToRootType.Immediate });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Failed to add note", message: msg });
+      await showError("Failed to add note", e);
     }
   };
 

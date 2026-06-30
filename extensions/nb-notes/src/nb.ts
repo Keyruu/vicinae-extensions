@@ -22,12 +22,24 @@ export interface NbItem {
   raw: string;
 }
 
+// nb addresses items as `id` or `notebook:id` depending on whether a notebook
+// is targeted. Every command needs the same string, so build it in one place.
+export function selector(id: string, notebook?: string): string {
+  return notebook ? `${notebook}:${id}` : id;
+}
+
+// nb marks pinned items with a pin emoji in its list output.
+export function isPinned(raw: string): boolean {
+  return raw.includes("\ud83d\udccc");
+}
+
 // parses lines like: [1] 20260623182332.md · "test"
 // or: [3] ✔️  [ ] todo title
-const LINE_RE = /^\[(\d+)\]\s+(.+)$/;
+// shared by parseListLine here and the todo parser in list-todos.tsx
+export const LIST_LINE_RE = /^\[(\d+)\]\s+(.+)$/;
 
 export function parseListLine(line: string): NbItem | null {
-  const m = LINE_RE.exec(line);
+  const m = LIST_LINE_RE.exec(line);
   if (!m) return null;
   const id = m[1]!;
   const rest = m[2]!;
@@ -51,13 +63,11 @@ export async function listItems(notebook?: string): Promise<NbItem[]> {
 }
 
 export async function showItem(id: string, notebook?: string): Promise<string> {
-  const selector = notebook ? `${notebook}:${id}` : id;
-  return exec(["show", selector, "--print", "--no-color"]);
+  return exec(["show", selector(id, notebook), "--print", "--no-color"]);
 }
 
 export async function deleteItem(id: string, notebook?: string): Promise<void> {
-  const selector = notebook ? `${notebook}:${id}` : id;
-  await exec(["delete", selector, "--force"]);
+  await exec(["delete", selector(id, notebook), "--force"]);
 }
 
 export async function listNotebooks(): Promise<string[]> {
@@ -67,13 +77,11 @@ export async function listNotebooks(): Promise<string[]> {
 }
 
 export async function pinItem(id: string, notebook?: string): Promise<void> {
-  const selector = notebook ? `${notebook}:${id}` : id;
-  await exec(["pin", selector]);
+  await exec(["pin", selector(id, notebook)]);
 }
 
 export async function unpinItem(id: string, notebook?: string): Promise<void> {
-  const selector = notebook ? `${notebook}:${id}` : id;
-  await exec(["unpin", selector]);
+  await exec(["unpin", selector(id, notebook)]);
 }
 
 export async function archiveNotebook(notebook: string): Promise<void> {

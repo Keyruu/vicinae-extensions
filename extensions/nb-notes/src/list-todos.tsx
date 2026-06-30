@@ -1,7 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { List, ActionPanel, Action, Icon, showToast, Toast, runInTerminal, Color, getPreferenceValues, Keyboard } from "@vicinae/api";
-import { exec, deleteItem, listNotebooks, pinItem, unpinItem } from "./nb";
-import { NoteDetail, prefetchItem, type CachedItem } from "./note-detail";
+import { useEffect, useState, useCallback } from "react";
+import { List, ActionPanel, Action, Icon, Toast, showToast, Color, Keyboard } from "@vicinae/api";
+import { exec, deleteItem, selector, LIST_LINE_RE } from "./nb";
+import { NoteDetail } from "./note-detail";
+import { useNbList } from "./useNbList";
+import { showError } from "./errors";
+import { PinAction, EditAction } from "./actions";
 
 interface Todo {
   id: string;
@@ -10,10 +13,8 @@ interface Todo {
   raw: string;
 }
 
-const TODO_LINE_RE = /^\[(\d+)\]\s+(.+)$/;
-
 function parseTodoLine(line: string): Todo | null {
-  const m = TODO_LINE_RE.exec(line);
+  const m = LIST_LINE_RE.exec(line);
   if (!m) return null;
   const id = m[1]!;
   const rest = m[2]!;
@@ -45,53 +46,24 @@ async function listTodos(filter: string, notebook?: string): Promise<Todo[]> {
 }
 
 export default function ListTodos() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [notebooks, setNotebooks] = useState<string[]>([]);
-  const [notebook, setNotebook] = useState<string>("");
   const [filter, setFilter] = useState<string>("open");
-  const [isLoading, setIsLoading] = useState(true);
-  const contentCache = useRef<Record<string, CachedItem>>({});
 
-  const load = useCallback(async (f: string, nb?: string) => {
-    setIsLoading(true);
-    contentCache.current = {};
-    try {
-      const result = await listTodos(f, nb || undefined);
-      if (result.length > 0) {
-        const first = result[0]!;
-        contentCache.current[first.id] = await prefetchItem(first.id, nb || undefined);
-      }
-      setTodos(result);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Failed to list todos", message: msg });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetch = useCallback((nb?: string) => listTodos(filter, nb), [filter]);
+
+  const { items: todos, notebooks, notebook, setNotebook, isLoading, reload, contentCache } =
+    useNbList(fetch, "Failed to list todos");
 
   useEffect(() => {
-    listNotebooks().then((nbs) => {
-      setNotebooks(nbs);
-      const current = nbs.find((n) => !n.includes("(archived)")) ?? nbs[0] ?? "";
-      setNotebook(current);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (notebook) load(filter, notebook);
-  }, [notebook, filter, load]);
+    if (notebook) reload(notebook);
+  }, [notebook, filter, reload]);
 
   const toggleDone = async (todo: Todo) => {
     try {
-      const selector = notebook ? `${notebook}:${todo.id}` : todo.id;
-      await exec([todo.done ? "undo" : "do", selector]);
+      await exec([todo.done ? "undo" : "do", selector(todo.id, notebook || undefined)]);
       await showToast({ style: Toast.Style.Success, title: todo.done ? "Marked undone" : "Marked done" });
-      contentCache.current = {};
-      load(filter, notebook || undefined);
+      reload(notebook || undefined);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Failed", message: msg });
+      await showError("Failed", e);
     }
   };
 
@@ -99,10 +71,9 @@ export default function ListTodos() {
     try {
       await deleteItem(todo.id, notebook || undefined);
       await showToast({ style: Toast.Style.Success, title: "Deleted" });
-      load(filter, notebook || undefined);
+      reload(notebook || undefined);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Delete failed", message: msg });
+      await showError("Delete failed", e);
     }
   };
 
@@ -112,7 +83,10 @@ export default function ListTodos() {
       isShowingDetail
       searchBarPlaceholder="Filter todos..."
       searchBarAccessory={
-        <List.Dropdown tooltip="Filter" value={filter} onChange={setFilter}>
+        <List.Dropdown tooltip="Filter" value={filter} onChange={(val) => {
+          if (val.startsWith("nb:")) setNotebook(val.slice(3));
+          else setFilter(val);
+        }}>
           <List.Dropdown.Section title="Status">
             <List.Dropdown.Item title="Open" value="open" icon={Icon.Circle} />
             <List.Dropdown.Item title="Closed" value="closed" icon={Icon.CheckCircle} />
@@ -152,34 +126,8 @@ export default function ListTodos() {
                   icon={todo.done ? Icon.Circle : Icon.CheckCircle}
                   onAction={() => toggleDone(todo)}
                 />
-                <Action
-                  title="Edit"
-                  icon={Icon.Pencil}
-                  onAction={async () => {
-                    const selector = notebook ? `${notebook}:${todo.id}` : todo.id;
-                    const { terminalAppId } = getPreferenceValues<{ terminalAppId?: string }>();
-                    await runInTerminal(["nb", "edit", selector], { hold: false, ...(terminalAppId ? { appId: terminalAppId } : {}) });
-                  }}
-                />
-                <Action
-                  title={todo.raw.includes("📌") ? "Unpin" : "Pin"}
-                  icon={Icon.Pin}
-                  shortcut={Keyboard.Shortcut.Common.Pin}
-                  onAction={async () => {
-                    try {
-                      if (todo.raw.includes("📌")) {
-                        await unpinItem(todo.id, notebook || undefined);
-                      } else {
-                        await pinItem(todo.id, notebook || undefined);
-                      }
-                      await showToast({ style: Toast.Style.Success, title: todo.raw.includes("📌") ? "Unpinned" : "Pinned" });
-                      load(filter, notebook || undefined);
-                    } catch (e) {
-                      const msg = e instanceof Error ? e.message : "Unknown error";
-                      await showToast({ style: Toast.Style.Failure, title: "Failed", message: msg });
-                    }
-                  }}
-                />
+                <EditAction id={todo.id} notebook={notebook || undefined} />
+                <PinAction id={todo.id} raw={todo.raw} notebook={notebook || undefined} onChange={() => reload(notebook || undefined)} />
                 <Action.CopyToClipboard title="Copy Title" content={todo.title} shortcut={Keyboard.Shortcut.Common.Copy} />
                 <Action
                   title="Delete"
@@ -188,7 +136,7 @@ export default function ListTodos() {
                   shortcut={Keyboard.Shortcut.Common.Remove}
                   onAction={() => handleDelete(todo)}
                 />
-                <Action title="Refresh" icon={Icon.RotateAntiClockwise} shortcut={Keyboard.Shortcut.Common.Refresh} onAction={() => load(filter, notebook || undefined)} />
+                <Action title="Refresh" icon={Icon.RotateAntiClockwise} shortcut={Keyboard.Shortcut.Common.Refresh} onAction={() => reload(notebook || undefined)} />
               </ActionPanel>
             }
           />

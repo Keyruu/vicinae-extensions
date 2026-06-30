@@ -1,17 +1,18 @@
-import { useState, useRef } from "react";
-import { List, ActionPanel, Action, Icon, Detail, showToast, Toast, useNavigation } from "@vicinae/api";
+import { useState, useRef, useEffect } from "react";
+import { List, ActionPanel, Action, Icon, Detail, useNavigation } from "@vicinae/api";
 import { searchItems, showItem } from "./nb";
+import { showError } from "./errors";
 
-function NoteDetail({ id }: { id: string }) {
+function SearchNoteDetail({ id }: { id: string }) {
   const [content, setContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
-  useState(() => {
+  useEffect(() => {
     showItem(id)
       .then(setContent)
       .catch(() => setContent("*Failed to load content*"))
       .finally(() => setIsLoading(false));
-  });
+  }, [id]);
 
   return (
     <Detail
@@ -44,8 +45,7 @@ export default function SearchNotes() {
         const res = await searchItems(text);
         setResults(res);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Unknown error";
-        await showToast({ style: Toast.Style.Failure, title: "Search failed", message: msg });
+        await showError("Search failed", e);
       } finally {
         setIsLoading(false);
       }
@@ -65,7 +65,7 @@ export default function SearchNotes() {
             accessories={[{ text: `#${r.id}` }]}
             actions={
               <ActionPanel>
-                <Action title="View" icon={Icon.Eye} onAction={() => push(<NoteDetail id={r.id} />)} />
+                <Action title="View" icon={Icon.Eye} onAction={() => push(<SearchNoteDetail id={r.id} />)} />
                 <Action.CopyToClipboard title="Copy Filename" content={r.filename} />
               </ActionPanel>
             }

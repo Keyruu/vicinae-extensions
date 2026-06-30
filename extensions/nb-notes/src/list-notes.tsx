@@ -1,60 +1,51 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { List, ActionPanel, Action, Icon, showToast, Toast, runInTerminal, getPreferenceValues, Keyboard } from "@vicinae/api";
-import { listItems, listNotebooks, deleteItem, pinItem, unpinItem, archiveNotebook, unarchiveNotebook, type NbItem } from "./nb";
-import { NoteDetail, prefetchItem, type CachedItem } from "./note-detail";
+import { useEffect, useState, useCallback } from "react";
+import { List, ActionPanel, Action, Icon, Toast, showToast, Keyboard } from "@vicinae/api";
+import { listItems, deleteItem, listNotebooks, archiveNotebook, unarchiveNotebook, type NbItem } from "./nb";
+import { NoteDetail } from "./note-detail";
+import { useNbList } from "./useNbList";
+import { showError } from "./errors";
+import { PinAction, EditAction } from "./actions";
+
+const isTodo = (item: NbItem) => item.raw.includes("\u2714\ufe0f") || item.raw.includes("\u2705");
+const isBookmark = (item: NbItem) => item.filename.includes(".bookmark.");
 
 export default function ListNotes() {
-  const [items, setItems] = useState<NbItem[]>([]);
-  const [notebooks, setNotebooks] = useState<string[]>([]);
-  const [notebook, setNotebook] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>("notes");
-  const contentCache = useRef<Record<string, CachedItem>>({});
 
-  const load = useCallback(async (nb?: string, f?: string) => {
-    setIsLoading(true);
-    contentCache.current = {};
-    try {
-      const all = await listItems(nb || undefined);
-      const isTodo = (item: NbItem) => item.raw.includes("\u2714\ufe0f") || item.raw.includes("\u2705");
-      const isBookmark = (item: NbItem) => item.filename.includes(".bookmark.");
-      const result = f === "notes" ? all.filter((i) => !isTodo(i) && !isBookmark(i))
-        : f === "todos" ? all.filter(isTodo)
-        : f === "bookmarks" ? all.filter(isBookmark)
-        : all;
-      if (result.length > 0) {
-        const first = result[0]!;
-        contentCache.current[first.id] = await prefetchItem(first.id, nb || undefined);
-      }
-      setItems(result);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Failed to list notes", message: msg });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const fetch = useCallback(async (nb?: string): Promise<NbItem[]> => {
+    const all = await listItems(nb);
+    return filter === "notes" ? all.filter((i) => !isTodo(i) && !isBookmark(i))
+      : filter === "todos" ? all.filter(isTodo)
+      : filter === "bookmarks" ? all.filter(isBookmark)
+      : all;
+  }, [filter]);
+
+  const { items, notebooks, notebook, setNotebook, isLoading, reload, refreshNotebooks, contentCache } =
+    useNbList(fetch, "Failed to list notes");
 
   useEffect(() => {
-    listNotebooks().then((nbs) => {
-      setNotebooks(nbs);
-      const current = nbs.find((n) => !n.includes("(archived)")) ?? nbs[0] ?? "";
-      setNotebook(current);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (notebook) load(notebook, filter);
-  }, [notebook, filter, load]);
+    if (notebook) reload(notebook);
+  }, [notebook, filter, reload]);
 
   const handleDelete = async (item: NbItem) => {
     try {
       await deleteItem(item.id, notebook || undefined);
       await showToast({ style: Toast.Style.Success, title: "Deleted" });
-      load(notebook || undefined, filter);
+      reload(notebook || undefined);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Delete failed", message: msg });
+      await showError("Delete failed", e);
+    }
+  };
+
+  const handleArchiveToggle = async () => {
+    try {
+      const archived = notebook.includes("(archived)");
+      const name = notebook.replace(" (archived)", "");
+      await (archived ? unarchiveNotebook : archiveNotebook)(name);
+      await showToast({ style: Toast.Style.Success, title: archived ? "Unarchived" : "Archived" });
+      await refreshNotebooks();
+    } catch (e) {
+      await showError("Failed", e);
     }
   };
 
@@ -96,33 +87,8 @@ export default function ListNotes() {
             detail={<NoteDetail itemId={item.id} notebook={notebook || undefined} contentCache={contentCache} />}
             actions={
               <ActionPanel>
-                <Action
-                  title="Edit"
-                  icon={Icon.Pencil}
-                  onAction={async () => {
-                    const selector = notebook ? `${notebook}:${item.id}` : item.id;
-                    const { terminalAppId } = getPreferenceValues<{ terminalAppId?: string }>();
-                    await runInTerminal(["nb", "edit", selector], { hold: false, ...(terminalAppId ? { appId: terminalAppId } : {}) });
-                  }}
-                />
-                <Action
-                  title={item.raw.includes("📌") ? "Unpin" : "Pin"}
-                  icon={Icon.Pin}
-                  onAction={async () => {
-                    try {
-                      if (item.raw.includes("📌")) {
-                        await unpinItem(item.id, notebook || undefined);
-                      } else {
-                        await pinItem(item.id, notebook || undefined);
-                      }
-                      await showToast({ style: Toast.Style.Success, title: item.raw.includes("📌") ? "Unpinned" : "Pinned" });
-                      load(notebook || undefined, filter);
-                    } catch (e) {
-                      const msg = e instanceof Error ? e.message : "Unknown error";
-                      await showToast({ style: Toast.Style.Failure, title: "Failed", message: msg });
-                    }
-                  }}
-                />
+                <EditAction id={item.id} notebook={notebook || undefined} />
+                <PinAction id={item.id} raw={item.raw} notebook={notebook || undefined} onChange={() => reload(notebook || undefined)} />
                 <Action.CopyToClipboard title="Copy Title" content={item.title} shortcut={Keyboard.Shortcut.Common.Copy} />
                 <Action
                   title="Delete"
@@ -131,29 +97,13 @@ export default function ListNotes() {
                   shortcut={Keyboard.Shortcut.Common.Remove}
                   onAction={() => handleDelete(item)}
                 />
-                <Action title="Refresh" icon={Icon.RotateAntiClockwise} shortcut={Keyboard.Shortcut.Common.Refresh} onAction={() => load(notebook || undefined, filter)} />
+                <Action title="Refresh" icon={Icon.RotateAntiClockwise} shortcut={Keyboard.Shortcut.Common.Refresh} onAction={() => reload(notebook || undefined)} />
                 {notebook && (
                   <Action
                     title={notebook.includes("(archived)") ? "Unarchive Notebook" : "Archive Notebook"}
                     icon={Icon.Box}
                     style={Action.Style.Destructive}
-                    onAction={async () => {
-                      try {
-                        const name = notebook.replace(" (archived)", "");
-                        if (notebook.includes("(archived)")) {
-                          await unarchiveNotebook(name);
-                        } else {
-                          await archiveNotebook(name);
-                        }
-                        await showToast({ style: Toast.Style.Success, title: notebook.includes("(archived)") ? "Unarchived" : "Archived" });
-                        const nbs = await listNotebooks();
-                        setNotebooks(nbs);
-                        setNotebook(nbs[0] ?? "");
-                      } catch (e) {
-                        const msg = e instanceof Error ? e.message : "Unknown error";
-                        await showToast({ style: Toast.Style.Failure, title: "Failed", message: msg });
-                      }
-                    }}
+                    onAction={handleArchiveToggle}
                   />
                 )}
               </ActionPanel>

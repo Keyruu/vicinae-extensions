@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Form, ActionPanel, Action, showToast, Toast, closeMainWindow } from "@vicinae/api";
+import { Form, ActionPanel, Action, showToast, Toast, showHUD, PopToRootType } from "@vicinae/api";
 import { exec, listNotebooks } from "./nb";
+import { showError } from "./errors";
 
 export default function AddBookmark() {
   const [notebooks, setNotebooks] = useState<string[]>([]);
@@ -22,11 +23,9 @@ export default function AddBookmark() {
       if (values.tags) args.push("--tags", values.tags as string);
 
       await exec(args);
-      await showToast({ style: Toast.Style.Success, title: "Bookmark added" });
-      await closeMainWindow();
+      await showHUD("Bookmark added", { popToRootType: PopToRootType.Immediate });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Failed to add bookmark", message: msg });
+      await showError("Failed to add bookmark", e);
     }
   };
 

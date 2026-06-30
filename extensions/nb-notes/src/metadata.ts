@@ -1,4 +1,4 @@
-import { exec } from "./nb";
+import { exec, selector } from "./nb";
 
 export interface ItemMeta {
   filename: string;
@@ -17,12 +17,12 @@ export interface ParsedContent {
 }
 
 export async function getItemMeta(id: string, notebook?: string): Promise<ItemMeta> {
-  const selector = notebook ? `${notebook}:${id}` : id;
+  const sel = selector(id, notebook);
   const [filename, type, added, updated] = await Promise.all([
-    exec(["show", selector, "--filename", "--no-color"]).catch(() => ""),
-    exec(["show", selector, "--type", "--no-color"]).catch(() => ""),
-    exec(["show", selector, "--added", "--no-color"]).catch(() => ""),
-    exec(["show", selector, "--updated", "--no-color"]).catch(() => ""),
+    exec(["show", sel, "--filename", "--no-color"]).catch(() => ""),
+    exec(["show", sel, "--type", "--no-color"]).catch(() => ""),
+    exec(["show", sel, "--added", "--no-color"]).catch(() => ""),
+    exec(["show", sel, "--updated", "--no-color"]).catch(() => ""),
   ]);
   return { filename, type, added, updated };
 }

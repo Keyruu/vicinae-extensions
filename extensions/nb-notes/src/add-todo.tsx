@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Form, ActionPanel, Action, showToast, Toast, closeMainWindow } from "@vicinae/api";
+import { Form, ActionPanel, Action, showToast, Toast, showHUD, PopToRootType } from "@vicinae/api";
 import { exec, listNotebooks } from "./nb";
+import { showError } from "./errors";
 
 export default function AddTodo() {
   const [notebooks, setNotebooks] = useState<string[]>([]);
@@ -25,11 +26,9 @@ export default function AddTodo() {
       if (values.tags) args.push("--tags", values.tags as string);
 
       await exec(args);
-      await showToast({ style: Toast.Style.Success, title: "Todo added" });
-      await closeMainWindow();
+      await showHUD("Todo added", { popToRootType: PopToRootType.Immediate });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      await showToast({ style: Toast.Style.Failure, title: "Failed to add todo", message: msg });
+      await showError("Failed to add todo", e);
     }
   };
 
