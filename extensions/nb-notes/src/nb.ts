@@ -71,7 +71,7 @@ export async function deleteItem(id: string, notebook?: string): Promise<void> {
 }
 
 export async function listNotebooks(): Promise<string[]> {
-  const out = await exec(["notebooks", "--no-color"]);
+  const out = await exec(["notebooks", "--names", "--no-color"]);
   if (!out) return [];
   return out.split("\n").map((l) => l.trim()).filter(Boolean);
 }
@@ -82,6 +82,14 @@ export async function pinItem(id: string, notebook?: string): Promise<void> {
 
 export async function unpinItem(id: string, notebook?: string): Promise<void> {
   await exec(["unpin", selector(id, notebook)]);
+}
+
+export async function currentNotebook(): Promise<string> {
+  return await exec(["notebooks", "current", "--no-color"]);
+}
+
+export async function useNotebook(name: string): Promise<void> {
+  await exec(["notebooks", "use", name]);
 }
 
 export async function archiveNotebook(notebook: string): Promise<void> {

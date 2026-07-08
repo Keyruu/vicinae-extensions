@@ -51,13 +51,16 @@ export function NoteDetail({ itemId, notebook, contentCache }: {
     return () => { cancelled = true; };
   }, [itemId, notebook]);
 
-  const parsed = parseContent(raw);
+  // nb todo notes are `# [ ] title` markdown headings; drop the bare
+  // checkbox (keep the `# `) so the preview reads as a real title.
+  const cleaned = raw.replace(/^(#\s+)?\[[ xX]\]\s?/, "$1");
+  const parsed = parseContent(cleaned);
   const hasMeta = parsed.tags.length > 0 || parsed.due || parsed.tasks.length > 0 || parsed.related.length > 0 || meta;
 
   return (
     <List.Item.Detail
       isLoading={isLoading}
-      markdown={raw}
+      markdown={cleaned}
       metadata={hasMeta ? (
         <List.Item.Detail.Metadata>
           {meta?.type && (

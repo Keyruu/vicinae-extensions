@@ -43,6 +43,12 @@
       "title": "Add Bookmark",
       "description": "Bookmark a URL in nb",
       "mode": "view"
+    },
+    {
+      "name": "switch-notebook",
+      "title": "Switch Notebook",
+      "description": "Change the current default nb notebook",
+      "mode": "view"
     }
   ],
   "preferences": [

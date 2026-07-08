@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listNotebooks } from "./nb";
+import { listNotebooks, currentNotebook } from "./nb";
 import { prefetchItem, type CachedItem } from "./note-detail";
 import { showError } from "./errors";
 
@@ -39,9 +39,11 @@ export function useNbList<T extends { id: string }>(
   }, [failTitle]);
 
   const refreshNotebooks = useCallback(async () => {
-    const nbs = await listNotebooks();
+    const [nbs, cur] = await Promise.all([listNotebooks(), currentNotebook()]);
     setNotebooks(nbs);
-    const current = nbs.find((n) => !n.includes("(archived)")) ?? nbs[0] ?? "";
+    // cur is nb's actual active notebook; only fall back to first non-archived
+    // if it's somehow absent from the list.
+    const current = nbs.includes(cur) ? cur : nbs.find((n) => !n.includes("(archived)")) ?? nbs[0] ?? "";
     setNotebook(current);
     return current;
   }, []);

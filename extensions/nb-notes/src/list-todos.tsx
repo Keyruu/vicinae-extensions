@@ -128,7 +128,8 @@ export default function ListTodos() {
                 />
                 <EditAction id={todo.id} notebook={notebook || undefined} />
                 <PinAction id={todo.id} raw={todo.raw} notebook={notebook || undefined} onChange={() => reload(notebook || undefined)} />
-                <Action.CopyToClipboard title="Copy Title" content={todo.title} shortcut={Keyboard.Shortcut.Common.Copy} />
+                <Action.CopyToClipboard title="Copy Title" content={todo.title} />
+                <Action.CopyToClipboard title="Copy ID" content={todo.id} shortcut={Keyboard.Shortcut.Common.Copy} />
                 <Action
                   title="Delete"
                   icon={Icon.Trash}
