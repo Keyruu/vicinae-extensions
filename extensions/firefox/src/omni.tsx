@@ -157,7 +157,7 @@ export default function Command() {
         />
       ) : null}
 
-      <List.Section title="Open Tabs">
+      <List.Section title={`Open Tabs (${tabs.length})`}>
         {tabs.map((tab) => (
           <List.Item
             key={`tab-${tab.id}-${tab.url}`}
@@ -182,7 +182,7 @@ export default function Command() {
         ))}
       </List.Section>
 
-      <List.Section title="Bookmarks">
+      <List.Section title={`Bookmarks (${bookmarks.length})`}>
         {bookmarks.map((b) => (
           <List.Item
             key={`bookmark-${b.id}`}
@@ -195,7 +195,7 @@ export default function Command() {
         ))}
       </List.Section>
 
-      <List.Section title="History">
+      <List.Section title={`History (${history.length})`}>
         {history.map((item) => (
           <List.Item
             key={`history-${item.id}`}
