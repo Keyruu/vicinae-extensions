@@ -199,6 +199,7 @@ export default function Command() {
             icon={iconFor(tab.url, Icon.AppWindow)}
             title={tab.title ?? tab.url}
             subtitle={tab.url}
+            accessories={tab.active ? [{ icon: Icon.CheckCircle, tooltip: "Currently open tab" }] : []}
             actions={
               <ActionPanel>
                 <Action
