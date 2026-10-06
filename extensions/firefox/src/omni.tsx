@@ -12,7 +12,13 @@ import { useEffect, useState } from "react";
 
 import { getFavicons } from "./favicons";
 import { loadBookmarks, loadFolders, loadHistory, type Bookmark, type HistoryItem } from "./places";
-import { getFirefoxProfiles, getStoredFirefoxProfile, initDatabase } from "./utils";
+import {
+  getFirefoxProfiles,
+  getStoredFirefoxProfile,
+  initDatabase,
+  Profile,
+  setStoredFirefoxProfile,
+} from "./utils";
 
 const SEARCH_URL = "https://duckduckgo.com/?q=";
 
@@ -79,42 +85,52 @@ function OpenUrlActions({ url, query }: { url: string; query: string }) {
 export default function Command() {
   const [query, setQuery] = useState("");
   const [tabs, setTabs] = useState<Tab[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [currentProfile, setCurrentProfile] = useState("");
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [favicons, setFavicons] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
+  // Tabs come from the browser bridge, independent of the selected profile.
   useEffect(() => {
+    BrowserExtension.getTabs()
+      .then(setTabs)
+      .catch(() => setTabs([]));
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { profiles, defaultProfile } = await getFirefoxProfiles();
+      const stored = await getStoredFirefoxProfile();
+      const selected = profiles.find((p) => p.path === stored)?.path ?? defaultProfile;
+      setProfiles(profiles);
+      setCurrentProfile(selected);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!currentProfile) return;
     (async () => {
       setIsLoading(true);
       try {
-        const { profiles, defaultProfile } = await getFirefoxProfiles();
-        const stored = await getStoredFirefoxProfile();
-        const profile = profiles.find((p) => p.path === stored)?.path ?? defaultProfile;
-        if (profile) {
-          const db = await initDatabase(profile);
-          const folders = loadFolders(db);
-          const bookmarks = loadBookmarks(db, folders);
-          setBookmarks(bookmarks);
-          setHistory(loadHistory(db));
-          try {
-            // Favicons are cosmetic; failures (e.g. locked favicons.sqlite) are non-fatal.
-            setFavicons(await getFavicons(profile, bookmarks.map((b) => b.domain)));
-          } catch {
-            setFavicons(new Map());
-          }
+        const db = await initDatabase(currentProfile);
+        const folders = loadFolders(db);
+        const bookmarks = loadBookmarks(db, folders);
+        setBookmarks(bookmarks);
+        setHistory(loadHistory(db));
+        try {
+          // Favicons are cosmetic; failures (e.g. locked favicons.sqlite) are non-fatal.
+          setFavicons(await getFavicons(currentProfile, bookmarks.map((b) => b.domain)));
+        } catch {
+          setFavicons(new Map());
         }
       } catch {
         // No readable profile: tabs and web search still work.
       }
-      try {
-        setTabs(await BrowserExtension.getTabs());
-      } catch {
-        setTabs([]);
-      }
       setIsLoading(false);
     })();
-  }, []);
+  }, [currentProfile]);
 
   const trimmed = query.trim();
   const iconFor = (url: string, fallback: ImageLike) => {
@@ -133,6 +149,25 @@ export default function Command() {
       isLoading={isLoading}
       onSearchTextChange={setQuery}
       searchBarPlaceholder="Search tabs, bookmarks, history, or the web"
+      searchBarAccessory={
+        <List.Dropdown
+          tooltip="Profile"
+          value={currentProfile}
+          onChange={(value) => {
+            setCurrentProfile(value);
+            void setStoredFirefoxProfile(value);
+          }}
+        >
+          {profiles.map((profile) => (
+            <List.Dropdown.Item
+              key={profile.path}
+              icon={Icon.Person}
+              title={profile.name || profile.path}
+              value={profile.path}
+            />
+          ))}
+        </List.Dropdown>
+      }
       actions={trimmed ? <SearchFallbackPanel query={trimmed} /> : undefined}
     >
       {trimmed && isURL(trimmed) ? (
