@@ -93,10 +93,27 @@ export default function Command() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Tabs come from the browser bridge, independent of the selected profile.
+  // There is no push event for tab changes, so poll; skip state updates when
+  // nothing changed to avoid re-render churn.
   useEffect(() => {
-    BrowserExtension.getTabs()
-      .then(setTabs)
-      .catch(() => setTabs([]));
+    const load = async () => {
+      try {
+        const next = await BrowserExtension.getTabs();
+        setTabs((prev) =>
+          prev.length === next.length &&
+          prev.every(
+            (t, i) => t.id === next[i].id && t.url === next[i].url && t.title === next[i].title && t.active === next[i].active,
+          )
+            ? prev
+            : next
+        );
+      } catch {
+        // bridge unavailable; keep the last known tabs
+      }
+    };
+    void load();
+    const id = setInterval(() => void load(), 2000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
