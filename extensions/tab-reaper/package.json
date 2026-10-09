@@ -18,6 +18,13 @@
       "description": "Close tabs that were last used more than the configured age ago. Runs automatically in the background.",
       "mode": "no-view",
       "interval": "10m"
+    },
+    {
+      "name": "close-other-tabs",
+      "title": "Close Other Tabs",
+      "subtitle": "Tab Reaper",
+      "description": "Close every tab except the active, pinned, and audio playing ones. Asks which browser when more than one has tabs to close.",
+      "mode": "view"
     }
   ],
   "preferences": [
