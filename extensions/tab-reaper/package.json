@@ -43,9 +43,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vicinae/api": ">=0.30.0 <2"
+    "@vicinae/api": "^0.29.2"
   },
   "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/react": "^19.1.17",
+    "react": "^19.1.1",
     "typescript": "^5.9.2"
   }
 }
