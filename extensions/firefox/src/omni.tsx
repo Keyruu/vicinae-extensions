@@ -102,7 +102,14 @@ export default function Command() {
         setTabs((prev) =>
           prev.length === next.length &&
           prev.every(
-            (t, i) => t.id === next[i].id && t.url === next[i].url && t.title === next[i].title && t.active === next[i].active,
+            (t, i) =>
+              t.id === next[i].id &&
+              t.browserId === next[i].browserId &&
+              t.url === next[i].url &&
+              t.title === next[i].title &&
+              t.active === next[i].active &&
+              t.pinned === next[i].pinned &&
+              t.audible === next[i].audible,
           )
             ? prev
             : next
@@ -212,11 +219,15 @@ export default function Command() {
       <List.Section title={`Open Tabs (${tabs.length})`}>
         {tabs.map((tab) => (
           <List.Item
-            key={`tab-${tab.id}-${tab.url}`}
+            key={`tab-${tab.browserId}-${tab.id}`}
             icon={iconFor(tab.url, Icon.AppWindow)}
             title={tab.title ?? tab.url}
             subtitle={tab.url}
-            accessories={tab.active ? [{ icon: Icon.CheckCircle, tooltip: "Currently open tab" }] : []}
+            accessories={[
+              ...(tab.pinned ? [{ icon: Icon.Pin, tooltip: "Pinned tab" }] : []),
+              ...(tab.audible ? [{ icon: Icon.Speaker, tooltip: "Playing audio" }] : []),
+              ...(tab.active ? [{ icon: Icon.CheckCircle, tooltip: "Active tab" }] : []),
+            ]}
             actions={
               <ActionPanel>
                 <Action
@@ -225,6 +236,13 @@ export default function Command() {
                   onAction={async () => {
                     await closeMainWindow();
                     tab.focus();
+                  }}
+                />
+                <Action
+                  title="Close Tab"
+                  icon={Icon.MinusCircle}
+                  onAction={() => {
+                    tab.close();
                   }}
                 />
                 {trimmed ? <SearchAction query={trimmed} /> : null}
