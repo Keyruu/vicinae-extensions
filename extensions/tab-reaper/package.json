@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "tab-reaper",
+  "title": "Tab Reaper",
+  "description": "Automatically close browser tabs you haven't looked at in a while",
+  "categories": ["Web"],
+  "license": "MIT",
+  "platforms": ["Linux", "macOS"],
+  "author": "Keyruu",
+  "contributors": [],
+  "pastContributors": [],
+  "icon": "icon.png",
+  "commands": [
+    {
+      "name": "reap-stale-tabs",
+      "title": "Reap Stale Tabs",
+      "subtitle": "Tab Reaper",
+      "description": "Close tabs that were last used more than the configured age ago. Runs automatically in the background.",
+      "mode": "no-view",
+      "interval": "10m"
+    },
+    {
+      "name": "close-other-tabs",
+      "title": "Close Other Tabs",
+      "subtitle": "Tab Reaper",
+      "description": "Close every tab except the active, pinned, and audio playing ones. Asks which browser when more than one has tabs to close.",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "maxAgeMinutes",
+      "title": "Max Age (minutes)",
+      "required": true,
+      "description": "Tabs last used longer ago than this many minutes are closed",
+      "type": "textfield",
+      "default": "60"
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.29.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/react": "^19.1.17",
+    "react": "^19.1.1",
+    "typescript": "^5.9.2"
+  }
+}
