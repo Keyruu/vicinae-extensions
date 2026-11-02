@@ -10,7 +10,13 @@ export type Notification = {
   appName: string;
   summary: string;
   body: string;
+  urgency: number;
   actions: NotificationAction[];
+};
+
+export type NotificationGroup = {
+  appName: string;
+  notifications: Notification[];
 };
 
 export function parseNotifications(output: string): Notification[] {
@@ -26,6 +32,7 @@ export function parseNotifications(output: string): Notification[] {
         typeof item.appName === "string" &&
         typeof item.summary === "string" &&
         typeof item.body === "string" &&
+        typeof item.urgency === "number" &&
         Array.isArray(item.actions) &&
         item.actions.every(
           (action: unknown) =>
@@ -62,6 +69,39 @@ async function call(functionName: string, ...args: string[]): Promise<string> {
 
 export async function listNotifications(): Promise<Notification[]> {
   return parseNotifications(await call("list"));
+}
+
+/**
+ * Groups notifications per app the way the DMS notification center does:
+ * newest first inside a group, groups ordered by highest urgency and then by
+ * the most recent notification.
+ */
+export function groupNotifications(
+  notifications: Notification[],
+): NotificationGroup[] {
+  const groups = new Map<string, Notification[]>();
+  for (const notification of notifications) {
+    const app = notification.appName || "Unknown app";
+    groups.set(app, [...(groups.get(app) ?? []), notification]);
+  }
+
+  return [...groups.entries()]
+    .map(([appName, items]) => ({
+      appName,
+      notifications: items.sort(
+        (a, b) => Number(b.timestamp) - Number(a.timestamp),
+      ),
+    }))
+    .sort((a, b) => {
+      const urgency = b.notifications[0].urgency - a.notifications[0].urgency;
+      if (urgency !== 0) {
+        return urgency;
+      }
+      return (
+        Number(b.notifications[0].timestamp) -
+        Number(a.notifications[0].timestamp)
+      );
+    });
 }
 
 export async function dismiss(notification: Notification): Promise<void> {

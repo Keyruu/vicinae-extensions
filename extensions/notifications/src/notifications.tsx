@@ -4,6 +4,7 @@ import {
   clearAll,
   clearApp,
   dismiss,
+  groupNotifications,
   invoke,
   listNotifications,
   type Notification,
@@ -39,24 +40,20 @@ export default function Notifications() {
     }
   }
 
-  const groups = new Map<string, Notification[]>();
-  for (const notification of notifications) {
-    const app = notification.appName || "Unknown app";
-    groups.set(app, [...(groups.get(app) ?? []), notification]);
-  }
+  const groups = groupNotifications(notifications);
 
   return (
     <List isLoading={loading} searchBarPlaceholder="Search notifications...">
-      {groups.size === 0 && (
+      {groups.length === 0 && (
         <List.EmptyView
           title={error || "No notifications"}
           description={error ? "Install and enable the Dux Shell bridge, then refresh." : "You're all caught up."}
           actions={<ActionPanel><Action title="Refresh" icon={Icon.ArrowClockwise} onAction={() => void refresh()} /></ActionPanel>}
         />
       )}
-      {[...groups].map(([app, items]) => (
-        <List.Section key={app} title={app} subtitle={`${items.length}`}>
-          {items.map((notification) => (
+      {groups.map((group) => (
+        <List.Section key={group.appName} title={group.appName} subtitle={`${group.notifications.length}`}>
+          {group.notifications.map((notification) => (
             <List.Item
               key={`${notification.id}:${notification.timestamp}`}
               title={notification.summary || "Notification"}
@@ -74,7 +71,7 @@ export default function Notifications() {
                   )}
                   <ActionPanel.Section title="Manage">
                     <Action title="Dismiss Notification" icon={Icon.Trash} onAction={() => void perform(() => dismiss(notification))} />
-                    <Action title={`Clear ${app}`} icon={Icon.Trash} onAction={() => void perform(() => clearApp(notification.appName))} />
+                    <Action title={`Clear ${group.appName}`} icon={Icon.Trash} onAction={() => void perform(() => clearApp(notification.appName))} />
                     <Action title="Clear All Notifications" icon={Icon.Trash} onAction={() => void perform(clearAll)} />
                     <Action title="Refresh" icon={Icon.ArrowClockwise} onAction={() => void refresh()} />
                   </ActionPanel.Section>

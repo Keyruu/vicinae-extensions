@@ -24,6 +24,7 @@ Item {
                 appName: n.appName,
                 summary: n.summary,
                 body: n.body,
+                urgency: n.urgency ?? 1,
                 actions: n.actions.map((a, index) => ({ index: index, id: a.identifier, title: a.text || "Open" }))
             })));
         }
