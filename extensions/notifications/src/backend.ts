@@ -19,6 +19,31 @@ export type NotificationGroup = {
   notifications: Notification[];
 };
 
+/**
+ * Turns the markup senders put into notification bodies into plain text, so
+ * the detail view does not show raw HTML tags.
+ */
+export function toPlainText(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|tr)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export const URGENCY_LABELS = ["Low", "Normal", "Critical"];
+
+export function urgencyLabel(urgency: number): string {
+  return URGENCY_LABELS[urgency] ?? "Normal";
+}
+
 export function parseNotifications(output: string): Notification[] {
   const value: unknown = JSON.parse(output);
   if (

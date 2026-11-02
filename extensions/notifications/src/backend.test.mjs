@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { groupNotifications, parseNotifications } from "./backend.ts";
+import {
+  groupNotifications,
+  parseNotifications,
+  toPlainText,
+  urgencyLabel,
+} from "./backend.ts";
 
 function notification(overrides) {
   return {
@@ -27,6 +32,17 @@ test("rejects malformed bridge responses", () => {
     () => parseNotifications('[{"id":"1","actions":[{"id":"reply","title":"Reply"}]}]'),
     /invalid notification data/,
   );
+});
+
+test("strips notification markup for the detail view", () => {
+  assert.equal(toPlainText("• 12:00 <i>Lunch</i> () &amp; more"), "• 12:00 Lunch () & more");
+  assert.equal(toPlainText("line1<br/>line2</p><p>para2"), "line1\nline2\npara2");
+});
+
+test("labels known urgencies and falls back to normal", () => {
+  assert.equal(urgencyLabel(0), "Low");
+  assert.equal(urgencyLabel(2), "Critical");
+  assert.equal(urgencyLabel(9), "Normal");
 });
 
 test("orders notifications newest first inside a group", () => {
