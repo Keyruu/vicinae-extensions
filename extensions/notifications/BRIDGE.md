@@ -2,7 +2,7 @@
 
 ## Finding
 
-A small Dux Shell **daemon plugin** can expose the live notification objects through Quickshell IPC without modifying Dux Shell itself. The Vicinae extension would call that plugin through `dms ipc call vicinaeNotifications …`. The bundled implementation has **not yet been tested with an installed plugin**.
+A small Dux Shell **daemon plugin** can expose the live notification objects through Quickshell IPC without modifying Dux Shell itself. The Vicinae extension would call that plugin through `dms ipc call vicinaeNotifications …`. The bundled implementation was verified against a live DMS 2.0.0 shell on 2026-11-02.
 
 DMS currently exposes `clearAll`, `dismiss` (last popup), and `invokeLast`, but no API to list active notifications or invoke an arbitrary action ([notification IPC handler](https://github.com/duxlabs-dev/dux-shell/blob/40630184/quickshell/Modals/NotificationModal.qml#L178-L200)). Its optional history file records text and metadata, **not actions**, so reading that file cannot implement the requested UI ([history persistence](https://github.com/duxlabs-dev/dux-shell/blob/40630184/quickshell/Services/NotificationService.qml#L120-L181)).
 
@@ -15,7 +15,17 @@ DMS currently exposes `clearAll`, `dismiss` (last popup), and `invokeLast`, but 
 
 ## Limits / checks before implementation
 
-- This requires a DMS plugin installed **and enabled** by the user; the extension must show a clear missing-bridge error. `dms ipc call vicinaeNotifications list` should be tested against an enabled plugin, including JSON escaping and large lists.
+- This requires a DMS plugin installed **and enabled** by the user; the extension must show a clear missing-bridge error.
 - IPC is accessible to local processes in the session; listing notifications exposes private notification text. Export only fields the UI needs, never images, hints, or history; document this trust boundary.
-- Verify action invocation, dismissal, sender-initiated close, stale-ID rejection, and a missing DMS/plugin in an actual shell. No runtime behavior was tested during this investigation.
+
+## Verified behavior
+
+Against a live DMS 2.0.0 shell with the plugin installed and enabled:
+
+- `list` returned 116 active notifications grouped by app (Slack, Gotify, kitty, notify-send), including real action lists such as `{index: 0, id: "default", title: "View"}`.
+- `invoke` on a self-sent notification with a custom action ran that action; `invoke` with a wrong action identifier and `dismiss` with a wrong id/timestamp pair both returned `NOT_FOUND` instead of acting on the wrong notification.
+- `clearApp` removed every notification of one app; `clearAll` cleared the list.
+- The Vicinae command launched and loaded without errors, and the built TypeScript adapter parsed the live payload and dismissed a notification through the bridge.
+
+Still unverified: a notification that the sender closes itself, action lists that change between listing and invocation, and behavior when DMS or the plugin is absent (the extension shows a setup error instead).
 - Relevant upstream issues [#3675](https://github.com/duxlabs-dev/dux-shell/issues/3675) / [#1598](https://github.com/duxlabs-dev/dux-shell/issues/1598) concern `invokeLast`, and [#56](https://github.com/duxlabs-dev/dux-shell/issues/56) concerns `clearAll`; none supplies a list/arbitrary-action API.
