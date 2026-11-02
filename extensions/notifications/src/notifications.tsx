@@ -4,6 +4,7 @@ import {
   ActionPanel,
   Clipboard,
   Icon,
+  Keyboard,
   List,
   showToast,
   Toast,
@@ -19,6 +20,17 @@ import {
   urgencyLabel,
   type Notification,
 } from "./backend";
+
+// The detail toggle stays on shift+tab; the rest use the shared Vicinae
+// shortcuts so they follow the user's own keybinding preferences.
+const TOGGLE_DETAIL_SHORTCUT: Keyboard.Shortcut = {
+  modifiers: ["shift"],
+  key: "tab",
+};
+const CLEAR_APP_SHORTCUT: Keyboard.Shortcut = {
+  modifiers: ["cmd", "alt"],
+  key: "backspace",
+};
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -120,12 +132,6 @@ export default function Notifications() {
               }
               actions={
                 <ActionPanel>
-                  <Action
-                    title={isShowingDetail ? "Hide Details" : "Show Details"}
-                    icon={Icon.Eye}
-                    shortcut={{ modifiers: ["shift"], key: "tab" }}
-                    onAction={() => setIsShowingDetail((shown) => !shown)}
-                  />
                   {notification.actions.length > 0 && (
                     <ActionPanel.Section title="Actions">
                       {notification.actions.map((action) => (
@@ -133,12 +139,48 @@ export default function Notifications() {
                       ))}
                     </ActionPanel.Section>
                   )}
+                  <ActionPanel.Section title="View">
+                    <Action
+                      title={isShowingDetail ? "Hide Details" : "Show Details"}
+                      icon={Icon.Eye}
+                      shortcut={TOGGLE_DETAIL_SHORTCUT}
+                      onAction={() => setIsShowingDetail((shown) => !shown)}
+                    />
+                    <Action
+                      title="Refresh"
+                      icon={Icon.ArrowClockwise}
+                      shortcut={Keyboard.Shortcut.Common.Refresh}
+                      onAction={() => void refresh()}
+                    />
+                  </ActionPanel.Section>
                   <ActionPanel.Section title="Manage">
-                    <Action title="Copy Notification Text" icon={Icon.CopyClipboard} onAction={() => void copyText(notification)} />
-                    <Action title="Dismiss Notification" icon={Icon.Trash} onAction={() => void perform(() => dismiss(notification))} />
-                    <Action title={`Clear ${group.appName}`} icon={Icon.Trash} onAction={() => void perform(() => clearApp(notification.appName))} />
-                    <Action title="Clear All Notifications" icon={Icon.Trash} onAction={() => void perform(clearAll)} />
-                    <Action title="Refresh" icon={Icon.ArrowClockwise} onAction={() => void refresh()} />
+                    <Action
+                      title="Copy Notification Text"
+                      icon={Icon.CopyClipboard}
+                      shortcut={Keyboard.Shortcut.Common.Copy}
+                      onAction={() => void copyText(notification)}
+                    />
+                    <Action
+                      title="Dismiss Notification"
+                      icon={Icon.Trash}
+                      style={Action.Style.Destructive}
+                      shortcut={Keyboard.Shortcut.Common.Remove}
+                      onAction={() => void perform(() => dismiss(notification))}
+                    />
+                    <Action
+                      title={`Clear ${group.appName}`}
+                      icon={Icon.Trash}
+                      style={Action.Style.Destructive}
+                      shortcut={CLEAR_APP_SHORTCUT}
+                      onAction={() => void perform(() => clearApp(notification.appName))}
+                    />
+                    <Action
+                      title="Clear All Notifications"
+                      icon={Icon.Trash}
+                      style={Action.Style.Destructive}
+                      shortcut={Keyboard.Shortcut.Common.RemoveAll}
+                      onAction={() => void perform(clearAll)}
+                    />
                   </ActionPanel.Section>
                 </ActionPanel>
               }
