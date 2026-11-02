@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Action,
   ActionPanel,
+  Alert,
   Clipboard,
   Icon,
   Keyboard,
   List,
+  confirmAlert,
   showToast,
   Toast,
 } from "@vicinae/api";
@@ -179,7 +181,15 @@ export default function Notifications() {
                       icon={Icon.Trash}
                       style={Action.Style.Destructive}
                       shortcut={Keyboard.Shortcut.Common.RemoveAll}
-                      onAction={() => void perform(clearAll)}
+                      onAction={() => void perform(async () => {
+                        if (await confirmAlert({
+                          title: "Clear all notifications?",
+                          message: "Every active notification is dismissed. This cannot be undone.",
+                          primaryAction: { title: "Clear All", style: Alert.ActionStyle.Destructive },
+                        })) {
+                          await clearAll();
+                        }
+                      })}
                     />
                   </ActionPanel.Section>
                 </ActionPanel>
