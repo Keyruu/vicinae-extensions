@@ -68,7 +68,7 @@ export default function Notifications() {
                   {notification.actions.length > 0 && (
                     <ActionPanel.Section title="Actions">
                       {notification.actions.map((action) => (
-                        <Action key={action.id} title={action.title} onAction={() => void perform(() => invoke(notification, action.id))} />
+                        <Action key={`${action.index}:${action.id}`} title={action.title} onAction={() => void perform(() => invoke(notification, action))} />
                       ))}
                     </ActionPanel.Section>
                   )}

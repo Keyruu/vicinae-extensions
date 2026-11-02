@@ -24,7 +24,7 @@ Item {
                 appName: n.appName,
                 summary: n.summary,
                 body: n.body,
-                actions: n.actions.map(a => ({ id: a.identifier, title: a.text || "Open" }))
+                actions: n.actions.map((a, index) => ({ index: index, id: a.identifier, title: a.text || "Open" }))
             })));
         }
 
@@ -36,10 +36,10 @@ Item {
             return "OK";
         }
 
-        function invoke(id: string, timestamp: string, actionId: string): string {
+        function invoke(id: string, timestamp: string, actionIndex: string, actionId: string): string {
             const notification = root.findNotification(id, timestamp);
-            const action = notification?.actions.find(a => a.identifier === actionId);
-            if (!action)
+            const action = notification?.actions[parseInt(actionIndex)];
+            if (!action || (actionId && action.identifier !== actionId))
                 return "NOT_FOUND";
             action.invoke();
             return "OK";
