@@ -1,0 +1,11 @@
+{
+  "id": "vicinaeNotifications",
+  "name": "Vicinae Notifications Bridge",
+  "description": "Expose active Dux Shell notifications to Vicinae via local IPC",
+  "version": "1.0.0",
+  "author": "Keyruu",
+  "type": "daemon",
+  "capabilities": ["notifications"],
+  "component": "./NotificationsBridge.qml",
+  "requires_dms": ">=2.0.0"
+}

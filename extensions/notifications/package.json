@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "notifications",
+  "title": "Notifications",
+  "description": "Browse and act on desktop notifications through Dux Shell",
+  "categories": [
+    "System"
+  ],
+  "license": "MIT",
+  "platforms": [
+    "Linux"
+  ],
+  "author": "Keyruu",
+  "icon": "bell.svg",
+  "commands": [
+    {
+      "name": "notifications",
+      "title": "Notifications",
+      "description": "Browse, act on, and clear notifications grouped by app",
+      "mode": "view"
+    }
+  ],
+  "preferences": [],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop",
+    "lint": "vici lint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/backend.test.mjs"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.29.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "typescript": "^5.9.2"
+  }
+}
