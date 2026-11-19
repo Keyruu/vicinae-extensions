@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import qs.Common
 import qs.Services
 
 Item {
@@ -14,6 +15,33 @@ Item {
             && String(n.time.getTime()) === timestamp);
     }
 
+    // Resolves the sender's icon the way the DMS notification card does: a
+    // themed icon name wins over a bundled logo, and the notification image is
+    // used when the sender set no icon at all. Local files come back as
+    // file:// URLs, icon names stay names so the launcher resolves them from
+    // the current theme.
+    function iconSource(notification) {
+        const appIcon = NotificationService.notificationAppIcon(notification.appIcon || "", notification.desktopEntry || "");
+        if (appIcon) {
+            const themed = NotificationService.notificationThemedAppIcon(appIcon);
+            if (themed)
+                return themed;
+            if (appIcon.startsWith("file://"))
+                return appIcon;
+            if (appIcon.startsWith("/"))
+                return "file://" + appIcon;
+            return appIcon;
+        }
+        const image = notification.image || "";
+        if (image.startsWith("image://icon/")) {
+            const payload = image.substring(13);
+            if (payload.startsWith("/"))
+                return "file://" + payload;
+            return payload;
+        }
+        return "";
+    }
+
     IpcHandler {
         target: "vicinaeNotifications"
 
@@ -25,6 +53,7 @@ Item {
                 summary: n.summary,
                 body: n.body,
                 urgency: n.urgency ?? 1,
+                icon: root.iconSource(n),
                 actions: n.actions.map((a, index) => ({ index: index, id: a.identifier, title: a.text || "Open" }))
             })));
         }

@@ -95,7 +95,7 @@ export default function Notifications() {
               key={`${notification.id}:${notification.timestamp}`}
               title={notification.summary || "Notification"}
               subtitle={notification.body}
-              icon={Icon.Bell}
+              icon={notification.icon || Icon.Bell}
               accessories={[{ text: new Date(Number(notification.timestamp)).toLocaleTimeString() }]}
               detail={
                 <List.Item.Detail

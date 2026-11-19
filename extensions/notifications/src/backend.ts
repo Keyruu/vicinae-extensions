@@ -11,6 +11,7 @@ export type Notification = {
   summary: string;
   body: string;
   urgency: number;
+  icon: string;
   actions: NotificationAction[];
 };
 
@@ -58,6 +59,7 @@ export function parseNotifications(output: string): Notification[] {
         typeof item.summary === "string" &&
         typeof item.body === "string" &&
         typeof item.urgency === "number" &&
+        typeof item.icon === "string" &&
         Array.isArray(item.actions) &&
         item.actions.every(
           (action: unknown) =>
@@ -74,22 +76,60 @@ export function parseNotifications(output: string): Notification[] {
   return value as Notification[];
 }
 
-async function call(functionName: string, ...args: string[]): Promise<string> {
+export function bridgeSetupError(status: string): string | undefined {
+  if (status.includes("PLUGIN_NOT_FOUND")) {
+    return "The Dux Shell notifications bridge is not installed. See the extension README for setup.";
+  }
+  if (status === "disabled") {
+    return "The Dux Shell notifications bridge is installed but disabled. Enable it in DMS Plugins, then refresh.";
+  }
+}
+
+async function bridgeError(): Promise<Error> {
+  let status = "";
   try {
     const { stdout } = await execFileAsync(
+      "dms",
+      ["ipc", "call", "plugins", "status", "vicinaeNotifications"],
+      { timeout: 5000 },
+    );
+    status = stdout.trim();
+  } catch (cause) {
+    const error = cause as {
+      stdout?: string;
+      stderr?: string;
+      message?: string;
+    };
+    status = [error.stdout, error.stderr, error.message]
+      .filter(Boolean)
+      .join("\n");
+  }
+  return new Error(
+    bridgeSetupError(status) ??
+      "Cannot reach the Dux Shell notifications bridge. See the extension README for setup.",
+  );
+}
+
+async function call(functionName: string, ...args: string[]): Promise<string> {
+  let stdout: string;
+  try {
+    ({ stdout } = await execFileAsync(
       "dms",
       ["ipc", "call", "vicinaeNotifications", functionName, ...args],
       {
         timeout: 5000,
         maxBuffer: 4 * 1024 * 1024,
       },
-    );
-    return stdout.trim();
+    ));
   } catch {
-    throw new Error(
-      "Cannot reach the Dux Shell notifications bridge. See the extension README for setup.",
-    );
+    throw await bridgeError();
   }
+
+  const output = stdout.trim();
+  if (output === "Target not found.") {
+    throw await bridgeError();
+  }
+  return output;
 }
 
 export async function listNotifications(): Promise<Notification[]> {
